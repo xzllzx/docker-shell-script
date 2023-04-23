@@ -7,26 +7,26 @@ set +a
 
 # Declare a dictionary of version numbers and their corresponding git SHAs
 declare -A version_and_sha=(
-    ["1.0.0"]="GIT_SHA_1"
-    ["1.1.0"]="GIT_SHA_2"
-    # Add more versions and SHAs here
+    ["1.0"]="bfeb478a55240c332a8e6b28e689d549e10ddbec",
+    ["2.0"]="8153df2c37bcea4a4beeb090851903150d7f1633",
+    ["3.0"]="da634bf2c1e6bbfb36cc3172966ede6c9a8c7dc8",
 )
 
 # Iterate through the dictionary and build, tag, and push the Docker images
 for version in "${!version_and_sha[@]}"; do
     sha=${version_and_sha[$version]}
 
-    # Clone the specific version of the repository
-    git clone https://github.com/your_username/your_repository.git --branch $sha ./temp_repo
+    # Clone the specific version of the repository using the personal access token
+    git clone https://${GIT_ACCESS_TOKEN}@{GIT_REPOSITORY} --branch $sha ./temp_repo
 
     # Build the Docker image with the specific version number
-    docker build -t source:$version ./temp_repo
+    docker build -t {IMAGE_NAME}:$version ./temp_repo
 
     # Tag the Docker image with your Docker Hub username and repository
-    docker tag source:$version $DOCKER_USERNAME/source:$version
+    docker tag {IMAGE_NAME}:$version ${DOCKER_USERNAME}/{IMAGE_NAME}:$version
 
     # Push the Docker image to Docker Hub
-    docker push $DOCKER_USERNAME/source:$version
+    docker push ${DOCKER_USERNAME}/{IMAGE_NAME}:$version
 
     # Clean up the temporary repository folder
     rm -rf ./temp_repo
