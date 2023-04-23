@@ -1,4 +1,5 @@
 import configparser
+import json
 from pathlib import Path
 
 def parse_config_file(config_file_path: Path, format: str) -> dict[str, str]:
@@ -16,6 +17,8 @@ def parse_config_file(config_file_path: Path, format: str) -> dict[str, str]:
             for option in config.options(section):
                 # Add the key-value pair to the dictionary
                 result[f"{option}"] = config.get(section, option)
+        print(f"version_and_sha = {json.dumps(result, indent=4)}")
+
     elif format_lower == 'bash':
         # Initialize a list to store the version and SHA information
         result = []
@@ -30,10 +33,10 @@ def parse_config_file(config_file_path: Path, format: str) -> dict[str, str]:
                 # Format the output and add it to the list
                 result.append(f'    ["{version}"]="{sha}",')
         result = '\n'.join(result)
-
-    return result
+        result = f"declare -A version_and_sha=(\n{result}\n)"
+        print(result)
 
 if __name__ == '__main__':
     config_filepath = Path('config.ini')
-    x = parse_config_file(config_filepath, format='bash')
-    print(x)
+    parse_config_file(config_filepath, format='bash')
+    parse_config_file(config_filepath, format='python')
