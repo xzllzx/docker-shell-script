@@ -20,29 +20,49 @@ GIT_ACCESS_TOKEN = os.getenv("GIT_ACCESS_TOKEN")
 GIT_REPOSITORY = os.getenv("GIT_REPOSITORY")
 
 IMAGE_NAME = os.getenv("IMAGE_NAME")
+TEMP_REPO = "./temp_repo"
 
-for version, sha in version_and_sha.items():
-    # Clone the specific version of the repository
-    subprocess.run(["git", "clone", f"https://{GIT_ACCESS_TOKEN}@{GIT_REPOSITORY}", "./temp_repo"])
-    # subprocess.run(["git", "clone", f"https://{GIT_ACCESS_TOKEN}@{GIT_REPOSITORY}", "--branch", sha, "./temp_repo"])
-
-    # Build the Docker image with the specific version number
-    subprocess.run(["docker", "build", "-t", f"{IMAGE_NAME}:{version}", "./temp_repo"])
-    
-    # Tag the Docker image with your Docker Hub username and repository
-    subprocess.run(["docker", "tag", f"{IMAGE_NAME}:{version}", f"{DOCKER_USERNAME}/{IMAGE_NAME}:{version}"])
-    
-    # Push the Docker image to Docker Hub
-    subprocess.run(["docker", "push", f"{DOCKER_USERNAME}/{IMAGE_NAME}:{version}"])
-
-    print(f"Version {version} successfully pushed to Docker")
-    
+def remove_temp_repo(folder_path):
+    folder_path = os.path.normpath(folder_path)
     # Clean up the temporary repository 
     if platform.system() == "Windows":
         # Use the rmdir command on Windows
-        command = f'rmdir /s /q "./temp_repo"'
+        command = f'rmdir /s /q {folder_path}'
     else:
         # Use the rm command on other systems
-        command = f'rm -rf "./temp_repo"'
+        command = f'rm -rf {folder_path}'
     subprocess.call(command, shell=True)
-    break
+
+def main():
+    if os.path.exists(TEMP_REPO):
+        print(f"Removing existing {TEMP_REPO}")
+        remove_temp_repo(TEMP_REPO)
+
+    os.makedirs(TEMP_REPO, exist_ok=True)
+    os.chdir(TEMP_REPO)
+
+    # Clone the repository
+    subprocess.run(["git", "clone", f"https://{GIT_ACCESS_TOKEN}@{GIT_REPOSITORY}", "."])
+
+    for version, sha in version_and_sha.items():
+        # Checkout the specific version
+        subprocess.run(["git", "checkout", sha])
+
+        # Build the Docker image with the specific version number
+        subprocess.run(["docker", "build", "-t", f"{IMAGE_NAME}:{version}", "."])
+        
+        # Tag the Docker image with your Docker Hub username and repository
+        subprocess.run(["docker", "tag", f"{IMAGE_NAME}:{version}", f"{DOCKER_USERNAME}/{IMAGE_NAME}:{version}"])
+        
+        # Push the Docker image to Docker Hub
+        subprocess.run(["docker", "push", f"{DOCKER_USERNAME}/{IMAGE_NAME}:{version}"])
+
+        print(f"Version {version} successfully pushed to Docker")
+        
+    # Clean up the temporary repository folder
+    os.chdir("../")
+
+    remove_temp_repo(TEMP_REPO)
+
+if __name__ == "__main__":
+    main()
